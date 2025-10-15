@@ -133,9 +133,9 @@ export const pricingPlans: PricingPlan[] = [
       uz: "Ommabop",
     },
     price: {
-      ru: "2 500 000 сум",
-      en: "2 500 000 sum",
-      uz: "2 500 000 sum",
+      ru: "3 000 000 сум",
+      en: "3 000 000 sum",
+      uz: "3 000 000 sum",
     },
     features: {
       ru: [
