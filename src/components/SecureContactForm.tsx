@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { Send } from 'lucide-react';
-import { translations } from '../data/translations';
-import { Language } from '../types';
+import React, { useState } from "react";
+import { Send } from "lucide-react";
+import { translations } from "../data/translations";
+import { Language } from "../types";
 
 interface ContactFormData {
   name: string;
@@ -10,77 +10,113 @@ interface ContactFormData {
   phone?: string;
 }
 
-const escapeHtml = (unsafe: string) => {
-  return unsafe
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+type FormErrors = Partial<Record<keyof ContactFormData | "submit", string>>;
+
+/* =========================
+   🔐 САНИТИЗАЦИЯ (СТРОГО)
+========================= */
+
+// Обычный текст (имя, сообщение)
+const sanitizeText = (value: string) =>
+  value.replace(/[<>[\]{}'"\\/|;:=]/g, "").trim();
+
+// Email — разрешаем @ . + -
+const sanitizeEmail = (value: string) => value.replace(/[^\w@.+-]/g, "").trim();
+
+// Телефон — только цифры и +
+const sanitizePhone = (value: string) => value.replace(/[^\d+]/g, "").trim();
+
+/* =========================
+   ✅ ВАЛИДАЦИЯ
+========================= */
+
+const validateEmail = (email: string) =>
+  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+const validatePhone = (phone: string) => {
+  const digits = phone.replace(/\D/g, "");
+  // +998XXXXXXXXX (12 цифр) или XXXXXXXXX (9 цифр)
+  return /^(998\d{9}|\d{9})$/.test(digits);
 };
 
-const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-const validatePhone = (phone: string) => {
-  const digits = phone.replace(/\D/g, '');
-  return /^(998\d{9}|9\d{8})$/.test(digits);
-};
 const validateInput = (input: string, maxLength: number) =>
-  input.trim().length > 1 && input.length <= maxLength;
+  input.length > 1 && input.length <= maxLength;
+
+/* =========================
+   ⏱ RATE LIMIT
+========================= */
 
 const isRateLimited = () => {
   const now = Date.now();
   const windowMs = 10 * 60 * 1000;
   const stored = localStorage.getItem("successfulSubmissions");
-  const submissions = stored ? JSON.parse(stored) : [];
-  const recent = submissions.filter((time: number) => now - time <= windowMs);
+  const submissions: number[] = stored ? JSON.parse(stored) : [];
+  const recent = submissions.filter((t) => now - t <= windowMs);
   return recent.length >= 5;
 };
 
 const recordSubmission = () => {
-  const now = Date.now();
   const stored = localStorage.getItem("successfulSubmissions");
-  const submissions = stored ? JSON.parse(stored) : [];
-  submissions.push(now);
+  const submissions: number[] = stored ? JSON.parse(stored) : [];
+  submissions.push(Date.now());
   localStorage.setItem("successfulSubmissions", JSON.stringify(submissions));
 };
+
+/* =========================
+   🧩 COMPONENT
+========================= */
 
 interface SecureContactFormProps {
   currentLanguage: Language;
 }
 
-const SecureContactForm: React.FC<SecureContactFormProps> = ({ currentLanguage }) => {
+const SecureContactForm: React.FC<SecureContactFormProps> = ({
+  currentLanguage,
+}) => {
   const [formData, setFormData] = useState<ContactFormData>({
-    name: '',
-    email: '',
-    message: '',
-    phone: ''
+    name: "",
+    email: "",
+    message: "",
+    phone: "",
   });
 
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  // Безопасное получение переводов
   const t = translations[currentLanguage]?.form || translations.ru.form;
 
   const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
+    const e: FormErrors = {};
 
-    if (!validateInput(formData.name, 100)) newErrors.name = t.formInputName;
-    if (!validateInput(formData.message, 1000)) newErrors.message = t.formInputMessage;
-    if (formData.phone && !validatePhone(formData.phone)) newErrors.phone = t.formTelephone;
-    if (formData.email && !validateEmail(formData.email)) newErrors.email = t.formTelephone;
+    if (!validateInput(formData.name, 100)) e.name = t.formInputName;
 
-    if (isRateLimited()) newErrors.submit = t.formSendError;
+    if (!validateInput(formData.message, 1000)) e.message = t.formInputMessage;
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    if (formData.email && !validateEmail(formData.email))
+      e.email = t.formInputMessage;
+
+    if (formData.phone && !validatePhone(formData.phone))
+      e.phone = t.formTelephone;
+
+    if (isRateLimited()) e.submit = t.formSendError;
+
+    setErrors(e);
+    return Object.keys(e).length === 0;
   };
 
   const handleInputChange = (field: keyof ContactFormData, value: string) => {
-    const sanitizedValue = value.replace(/[<>[\]{}'"]/g, '').trim();
-    setFormData((prev) => ({ ...prev, [field]: sanitizedValue }));
-    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: '' }));
+    let cleanValue = value;
+
+    if (field === "email") cleanValue = sanitizeEmail(value);
+    else if (field === "phone") cleanValue = sanitizePhone(value);
+    else cleanValue = sanitizeText(value);
+
+    setFormData((prev) => ({ ...prev, [field]: cleanValue }));
+
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: undefined }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -89,36 +125,37 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({ currentLanguage }
 
     setIsSubmitting(true);
 
-    const payload = new URLSearchParams();
-    payload.append("name", escapeHtml(formData.name));
-    payload.append("email", escapeHtml(formData.email));
-    payload.append("message", escapeHtml(formData.message));
-    if (formData.phone) payload.append("phone", escapeHtml(formData.phone));
+    const payload = new URLSearchParams({
+      name: formData.name,
+      email: formData.email,
+      message: formData.message,
+      ...(formData.phone ? { phone: formData.phone } : {}),
+    });
 
     try {
       const res = await fetch(
         "https://script.google.com/macros/s/AKfycbzknqi83jOfSo9UswTP3hwoAjdV3SDbf5-5yEGwmYVqAzR2V7VB2xkPDFIp-zEkRe0/exec",
         {
           method: "POST",
-          body: payload
+          body: payload,
         }
       );
 
-      const text = await res.text();
-      if (text === "OK") {
+      if ((await res.text()) === "OK") {
         recordSubmission();
         setSubmitted(true);
-        setFormData({ name: '', email: '', message: '', phone: '' });
+        setFormData({ name: "", email: "", message: "", phone: "" });
       } else {
         setErrors({ submit: t.formSendError });
       }
-    } catch (err) {
-      console.error(err);
+    } catch {
       setErrors({ submit: t.formSendError });
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  /* ===== SUCCESS ===== */
 
   if (submitted) {
     return (
@@ -126,7 +163,9 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({ currentLanguage }
         <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <Send className="w-8 h-8 text-green-600" />
         </div>
-        <h3 className="text-xl font-semibold text-gray-900 mb-2">{t.formMessageSucces}</h3>
+        <h3 className="text-xl font-semibold text-gray-900 mb-2">
+          {t.formMessageSucces}
+        </h3>
         <p className="text-gray-600 mb-4">{t.formWeTypeYou}</p>
         <button
           onClick={() => setSubmitted(false)}
@@ -138,6 +177,8 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({ currentLanguage }
     );
   }
 
+  /* ===== FORM ===== */
+
   return (
     <div className="bg-white rounded-2xl p-8 shadow-lg">
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -146,9 +187,9 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({ currentLanguage }
             {errors.submit}
           </div>
         )}
-        
+
         <div className="grid gap-6">
-          {/* Поле имени */}
+          {/* Имя */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               {t.formName}
@@ -157,17 +198,19 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({ currentLanguage }
             <input
               type="text"
               value={formData.name}
-              onChange={(e) => handleInputChange('name', e.target.value)}
+              onChange={(e) => handleInputChange("name", e.target.value)}
               className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 ${
-                errors.name ? 'border-red-500' : 'border-gray-300'
+                errors.name ? "border-red-500" : "border-gray-300"
               }`}
               placeholder={t.formInputName}
               required
             />
-            {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
+            {errors.name && (
+              <p className="text-red-500 text-sm mt-1">{errors.name}</p>
+            )}
           </div>
 
-          {/* Поле email */}
+          {/* Email */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Email
@@ -175,16 +218,18 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({ currentLanguage }
             <input
               type="email"
               value={formData.email}
-              onChange={(e) => handleInputChange('email', e.target.value)}
+              onChange={(e) => handleInputChange("email", e.target.value)}
               className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 ${
-                errors.email ? 'border-red-500' : 'border-gray-300'
+                errors.email ? "border-red-500" : "border-gray-300"
               }`}
               placeholder="example@mail.com"
             />
-            {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+            {errors.email && (
+              <p className="text-red-500 text-sm mt-1">{errors.email}</p>
+            )}
           </div>
 
-          {/* Поле телефона */}
+          {/* Телефон */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               {t.formTelephone}
@@ -192,16 +237,18 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({ currentLanguage }
             <input
               type="tel"
               value={formData.phone || ""}
-              onChange={(e) => handleInputChange('phone', e.target.value)}
+              onChange={(e) => handleInputChange("phone", e.target.value)}
               className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 ${
-                errors.phone ? 'border-red-500' : 'border-gray-300'
+                errors.phone ? "border-red-500" : "border-gray-300"
               }`}
               placeholder="998 XX 000 00 00 | XX 000 00 00"
             />
-            {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone}</p>}
+            {errors.phone && (
+              <p className="text-red-500 text-sm mt-1">{errors.phone}</p>
+            )}
           </div>
 
-          {/* Поле сообщения */}
+          {/* Сообщение */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               {t.formMessage}
@@ -210,22 +257,24 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({ currentLanguage }
             <textarea
               rows={6}
               value={formData.message}
-              onChange={(e) => handleInputChange('message', e.target.value)}
+              onChange={(e) => handleInputChange("message", e.target.value)}
               className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 resize-none ${
-                errors.message ? 'border-red-500' : 'border-gray-300'
+                errors.message ? "border-red-500" : "border-gray-300"
               }`}
               placeholder={t.formInputMessage}
               required
               maxLength={1000}
             />
-            {errors.message && <p className="text-red-500 text-sm mt-1">{errors.message}</p>}
+            {errors.message && (
+              <p className="text-red-500 text-sm mt-1">{errors.message}</p>
+            )}
             <div className="text-right text-sm text-gray-500 mt-1">
               {formData.message.length}/1000
             </div>
           </div>
         </div>
 
-        {/* Кнопка отправки */}
+        {/* Кнопка */}
         <button
           type="submit"
           disabled={isSubmitting}

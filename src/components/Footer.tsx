@@ -1,8 +1,8 @@
-import React from 'react';
-import { Code } from 'lucide-react';
+import React from "react";
+import { Code } from "lucide-react";
 import { FaInstagram, FaTelegramPlane } from "react-icons/fa";
-import { translations } from '../data/translations';
-import { Language } from '../types';
+import { translations } from "../data/translations";
+import { Language } from "../types";
 
 interface FooterProps {
   currentLanguage: Language;
@@ -19,13 +19,11 @@ const Footer: React.FC<FooterProps> = ({ currentLanguage }) => {
           <div className="md:col-span-2">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-12">
-              <img src="/images/logo_png_gradient.png" alt="" />
+                <img src="/images/logo_png_gradient.png" alt="" />
               </div>
               <span className="text-xl font-bold">Tez Sayt</span>
             </div>
-            <p className="text-gray-400 mb-6 max-w-md">
-              {t.footer.text}
-            </p>
+            <p className="text-gray-400 mb-6 max-w-md">{t.footer.text}</p>
             <div className="flex gap-4">
               <a
                 href="https://t.me/tezsayt"
@@ -48,8 +46,17 @@ const Footer: React.FC<FooterProps> = ({ currentLanguage }) => {
           <div>
             <h3 className="text-lg font-semibold mb-4">{t.footer.contact}</h3>
             <ul className="space-y-2 text-gray-400">
-              <li>+998 94 171 71 94</li>
-              <li>lezenuz@gmail.com</li>
+              <li>
+                <a href="tel:+998941717194">+998 94 171 71 94</a>
+              </li>
+              <li>
+                <a
+                  href="mailto:lezenuz@gmail.com
+                "
+                >
+                  lezenuz@gmail.com
+                </a>
+              </li>
               <li>Tashkent, Uzbekistan</li>
             </ul>
           </div>
