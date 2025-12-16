@@ -100,9 +100,9 @@ export const pricingPlans: PricingPlan[] = [
       uz: "Asosiy",
     },
     price: {
-      ru: "1 500 000 сум",
-      en: "1 500 000 sum",
-      uz: "1 500 000 sum",
+      ru: "2 000 000 сум",
+      en: "2 000 000 сум",
+      uz: "2 000 000 сум",
     },
     features: {
       ru: [
@@ -143,7 +143,6 @@ export const pricingPlans: PricingPlan[] = [
         "До 3 изменений в месяц",
         "Домен .UZ и хостинг",
         "Дизайн сайта",
-        "Разработка сайта",
         "Интеграции и формы заявок",
       ],
       en: [
@@ -151,7 +150,6 @@ export const pricingPlans: PricingPlan[] = [
         "Up to 3 edits per month",
         ".UZ domain and hosting",
         "Website design",
-        "Website development",
         "Integrations & contact forms",
       ],
       uz: [
@@ -159,7 +157,6 @@ export const pricingPlans: PricingPlan[] = [
         "Oyiga 3 tagacha o‘zgarish",
         ".UZ domen va hosting",
         "Sayt dizayni",
-        "Sayt ishlab chiqish",
         "Integratsiya va murojaat formasi",
       ],
     },
