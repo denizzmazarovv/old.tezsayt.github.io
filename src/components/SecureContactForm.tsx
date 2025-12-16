@@ -18,7 +18,7 @@ type FormErrors = Partial<Record<keyof ContactFormData | "submit", string>>;
 
 // Обычный текст (имя, сообщение)
 const sanitizeText = (value: string) =>
-  value.replace(/[<>[\]{}'"\\/|;:=]/g, "").trim();
+  value.replace(/[<>[\]{}'"\\/|;:=]/g, "");
 
 // Email — разрешаем @ . + -
 const sanitizeEmail = (value: string) => value.replace(/[^\w@.+-]/g, "").trim();
