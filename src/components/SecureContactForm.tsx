@@ -210,6 +210,7 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({
                 errors.name ? "border-red-500" : "border-gray-300"
               }`}
               placeholder={t.formInputName}
+              maxLength={50}
               required
             />
             {errors.name && (
@@ -230,6 +231,7 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({
                 errors.email ? "border-red-500" : "border-gray-300"
               }`}
               placeholder="example@mail.com"
+              maxLength={100}
             />
             {errors.email && (
               <p className="text-red-500 text-sm mt-1">{errors.email}</p>
@@ -279,13 +281,13 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({
               }`}
               placeholder={t.formInputMessage}
               required
-              maxLength={1000}
+              maxLength={500}
             />
             {errors.message && (
               <p className="text-red-500 text-sm mt-1">{errors.message}</p>
             )}
             <div className="text-right text-sm text-gray-500 mt-1">
-              {formData.message.length}/1000
+              {formData.message.length}/500
             </div>
           </div>
         </div>
