@@ -3,44 +3,51 @@ import { Send } from "lucide-react";
 import { translations } from "../data/translations";
 import { Language } from "../types";
 
+/* =========================
+   🧾 TYPES
+========================= */
+
 interface ContactFormData {
   name: string;
   email: string;
   message: string;
-  phone?: string;
+  phone: string;
 }
 
 type FormErrors = Partial<Record<keyof ContactFormData | "submit", string>>;
 
 /* =========================
-   🔐 САНИТИЗАЦИЯ (СТРОГО)
+   🔐 SANITIZE
 ========================= */
 
-// Обычный текст (имя, сообщение)
-const sanitizeText = (value: string) =>
-  value.replace(/[<>[\]{}'"\\/|;:=]/g, "").trim();
+const sanitizeText = (v: string) => v.replace(/[<>[\]{}'"\\/|;:=]/g, "").trim();
 
-// Email — разрешаем @ . + -
-const sanitizeEmail = (value: string) => value.replace(/[^\w@.+-]/g, "").trim();
+const sanitizeEmail = (v: string) => v.replace(/[^\w@.+-]/g, "").trim();
 
-// Телефон — только цифры и +
-const sanitizePhone = (value: string) => value.replace(/[^\d+]/g, "").trim();
+const sanitizePhone = (v: string) => v.replace(/\D/g, "").slice(0, 9); // только 9 цифр
 
 /* =========================
-   ✅ ВАЛИДАЦИЯ
+   ✅ VALIDATE
 ========================= */
 
 const validateEmail = (email: string) =>
   /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
-const validatePhone = (phone: string) => {
-  const digits = phone.replace(/\D/g, "");
-  // +998XXXXXXXXX (12 цифр) или XXXXXXXXX (9 цифр)
-  return /^(998\d{9}|\d{9})$/.test(digits);
-};
+const validatePhone = (phone: string) => /^\d{9}$/.test(phone);
 
-const validateInput = (input: string, maxLength: number) =>
-  input.length > 1 && input.length <= maxLength;
+/* =========================
+   📱 FORMAT PHONE
+========================= */
+
+const formatUzPhone = (value: string) => {
+  const d = value.replace(/\D/g, "");
+
+  if (d.length <= 2) return d;
+  if (d.length <= 5) return `${d.slice(0, 2)} ${d.slice(2)}`;
+  if (d.length <= 7) return `${d.slice(0, 2)} ${d.slice(2, 5)} ${d.slice(5)}`;
+
+  return `${d.slice(0, 2)} ${d.slice(2, 5)} ${d.slice(5, 7)} ${d.slice(7, 9)}`;
+};
 
 /* =========================
    ⏱ RATE LIMIT
@@ -48,31 +55,29 @@ const validateInput = (input: string, maxLength: number) =>
 
 const isRateLimited = () => {
   const now = Date.now();
-  const windowMs = 10 * 60 * 1000;
-  const stored = localStorage.getItem("successfulSubmissions");
-  const submissions: number[] = stored ? JSON.parse(stored) : [];
-  const recent = submissions.filter((t) => now - t <= windowMs);
-  return recent.length >= 5;
+  const stored = localStorage.getItem("submits");
+  const list: number[] = stored ? JSON.parse(stored) : [];
+  return list.filter((t) => now - t < 10 * 60 * 1000).length >= 5;
 };
 
-const recordSubmission = () => {
-  const stored = localStorage.getItem("successfulSubmissions");
-  const submissions: number[] = stored ? JSON.parse(stored) : [];
-  submissions.push(Date.now());
-  localStorage.setItem("successfulSubmissions", JSON.stringify(submissions));
+const recordSubmit = () => {
+  const stored = localStorage.getItem("submits");
+  const list: number[] = stored ? JSON.parse(stored) : [];
+  list.push(Date.now());
+  localStorage.setItem("submits", JSON.stringify(list));
 };
 
 /* =========================
    🧩 COMPONENT
 ========================= */
 
-interface SecureContactFormProps {
+interface Props {
   currentLanguage: Language;
 }
 
-const SecureContactForm: React.FC<SecureContactFormProps> = ({
-  currentLanguage,
-}) => {
+const SecureContactForm: React.FC<Props> = ({ currentLanguage }) => {
+  const t = translations[currentLanguage]?.form || translations.ru.form;
+
   const [formData, setFormData] = useState<ContactFormData>({
     name: "",
     email: "",
@@ -84,39 +89,30 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  const t = translations[currentLanguage]?.form || translations.ru.form;
+  const handleChange = (field: keyof ContactFormData, value: string) => {
+    let clean = value;
 
-  const validateForm = (): boolean => {
+    if (field === "email") clean = sanitizeEmail(value);
+    if (field === "phone") clean = sanitizePhone(value);
+    if (field === "name" || field === "message") clean = sanitizeText(value);
+
+    setFormData((p) => ({ ...p, [field]: clean }));
+    if (errors[field]) setErrors((e) => ({ ...e, [field]: undefined }));
+  };
+
+  const validateForm = () => {
     const e: FormErrors = {};
 
-    if (!validateInput(formData.name, 100)) e.name = t.formInputName;
-
-    if (!validateInput(formData.message, 1000)) e.message = t.formInputMessage;
-
+    if (formData.name.length < 2) e.name = t.formInputName;
+    if (formData.message.length < 2) e.message = t.formInputMessage;
     if (formData.email && !validateEmail(formData.email))
       e.email = t.formInputMessage;
-
     if (formData.phone && !validatePhone(formData.phone))
       e.phone = t.formTelephone;
-
     if (isRateLimited()) e.submit = t.formSendError;
 
     setErrors(e);
     return Object.keys(e).length === 0;
-  };
-
-  const handleInputChange = (field: keyof ContactFormData, value: string) => {
-    let cleanValue = value;
-
-    if (field === "email") cleanValue = sanitizeEmail(value);
-    else if (field === "phone") cleanValue = sanitizePhone(value);
-    else cleanValue = sanitizeText(value);
-
-    setFormData((prev) => ({ ...prev, [field]: cleanValue }));
-
-    if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: undefined }));
-    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -129,20 +125,17 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({
       name: formData.name,
       email: formData.email,
       message: formData.message,
-      ...(formData.phone ? { phone: formData.phone } : {}),
+      phone: formData.phone ? `+998${formData.phone}` : "",
     });
 
     try {
       const res = await fetch(
         "https://script.google.com/macros/s/AKfycbzknqi83jOfSo9UswTP3hwoAjdV3SDbf5-5yEGwmYVqAzR2V7VB2xkPDFIp-zEkRe0/exec",
-        {
-          method: "POST",
-          body: payload,
-        }
+        { method: "POST", body: payload }
       );
 
       if ((await res.text()) === "OK") {
-        recordSubmission();
+        recordSubmit();
         setSubmitted(true);
         setFormData({ name: "", email: "", message: "", phone: "" });
       } else {
@@ -163,13 +156,11 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({
         <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <Send className="w-8 h-8 text-green-600" />
         </div>
-        <h3 className="text-xl font-semibold text-gray-900 mb-2">
-          {t.formMessageSucces}
-        </h3>
+        <h3 className="text-xl font-semibold mb-2">{t.formMessageSucces}</h3>
         <p className="text-gray-600 mb-4">{t.formWeTypeYou}</p>
         <button
           onClick={() => setSubmitted(false)}
-          className="text-purple-600 hover:text-purple-700 font-medium"
+          className="text-purple-600 font-medium"
         >
           {t.formSentRepeatMessage}
         </button>
@@ -183,110 +174,60 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({
     <div className="bg-white rounded-2xl p-8 shadow-lg">
       <form onSubmit={handleSubmit} className="space-y-6">
         {errors.submit && (
-          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
+          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg">
             {errors.submit}
           </div>
         )}
 
-        <div className="grid gap-6">
-          {/* Имя */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              {t.formName}
-              <span className="text-red-500"> *</span>
-            </label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => handleInputChange("name", e.target.value)}
-              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 ${
-                errors.name ? "border-red-500" : "border-gray-300"
-              }`}
-              placeholder={t.formInputName}
-              required
-            />
-            {errors.name && (
-              <p className="text-red-500 text-sm mt-1">{errors.name}</p>
-            )}
-          </div>
+        {/* Name */}
+        <input
+          type="text"
+          value={formData.name}
+          onChange={(e) => handleChange("name", e.target.value)}
+          placeholder={t.formName}
+          className="w-full px-4 py-3 border rounded-lg"
+          required
+        />
 
-          {/* Email */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Email
-            </label>
-            <input
-              type="email"
-              value={formData.email}
-              onChange={(e) => handleInputChange("email", e.target.value)}
-              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 ${
-                errors.email ? "border-red-500" : "border-gray-300"
-              }`}
-              placeholder="example@mail.com"
-            />
-            {errors.email && (
-              <p className="text-red-500 text-sm mt-1">{errors.email}</p>
-            )}
-          </div>
+        {/* Email */}
+        <input
+          type="email"
+          value={formData.email}
+          onChange={(e) => handleChange("email", e.target.value)}
+          placeholder="example@mail.com"
+          className="w-full px-4 py-3 border rounded-lg"
+        />
 
-          {/* Телефон */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              {t.formTelephone}
-            </label>
-
-            <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 select-none">
-                +998
-              </span>
-
-              <input
-                type="tel"
-                value={formData.phone || ""}
-                onChange={(e) => handleInputChange("phone", e.target.value)}
-                className={`w-full pl-16 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 ${
-                  errors.phone ? "border-red-500" : "border-gray-300"
-                }`}
-                placeholder="XX 000 00 00"
-              />
-            </div>
-
-            {errors.phone && (
-              <p className="text-red-500 text-sm mt-1">{errors.phone}</p>
-            )}
-          </div>
-
-          {/* Сообщение */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              {t.formMessage}
-              <span className="text-red-500"> *</span>
-            </label>
-            <textarea
-              rows={6}
-              value={formData.message}
-              onChange={(e) => handleInputChange("message", e.target.value)}
-              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 resize-none ${
-                errors.message ? "border-red-500" : "border-gray-300"
-              }`}
-              placeholder={t.formInputMessage}
-              required
-              maxLength={1000}
-            />
-            {errors.message && (
-              <p className="text-red-500 text-sm mt-1">{errors.message}</p>
-            )}
-            <div className="text-right text-sm text-gray-500 mt-1">
-              {formData.message.length}/1000
-            </div>
-          </div>
+        {/* Phone */}
+        <div className="relative">
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">
+            +998
+          </span>
+          <input
+            type="tel"
+            inputMode="numeric"
+            value={formatUzPhone(formData.phone)}
+            onChange={(e) => handleChange("phone", e.target.value)}
+            placeholder="XX XXX XX XX"
+            className="w-full pl-16 pr-4 py-3 border rounded-lg"
+          />
         </div>
 
-        {/* Кнопка */}
+        {/* Message */}
+        <textarea
+          rows={5}
+          value={formData.message}
+          onChange={(e) => handleChange("message", e.target.value)}
+          placeholder={t.formMessage}
+          className="w-full px-4 py-3 border rounded-lg resize-none"
+          maxLength={1000}
+          required
+        />
+
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full bg-gradient-to-r from-purple-600 to-blue-500 text-white py-4 rounded-lg font-semibold hover:shadow-lg hover:shadow-purple-500/25 transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-gradient-to-r from-purple-600 to-blue-500 text-white py-4 rounded-lg font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
         >
           <Send className="w-5 h-5" />
           {isSubmitting ? t.formSending : t.formMessage}
