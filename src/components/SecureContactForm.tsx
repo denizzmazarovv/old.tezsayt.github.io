@@ -234,15 +234,23 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({
             <label className="block text-sm font-medium text-gray-700 mb-2">
               {t.formTelephone}
             </label>
-            <input
-              type="tel"
-              value={formData.phone || ""}
-              onChange={(e) => handleInputChange("phone", e.target.value)}
-              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 ${
-                errors.phone ? "border-red-500" : "border-gray-300"
-              }`}
-              placeholder="998 XX 000 00 00 | XX 000 00 00"
-            />
+
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 select-none">
+                +998
+              </span>
+
+              <input
+                type="tel"
+                value={formData.phone || ""}
+                onChange={(e) => handleInputChange("phone", e.target.value)}
+                className={`w-full pl-16 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 ${
+                  errors.phone ? "border-red-500" : "border-gray-300"
+                }`}
+                placeholder="XX 000 00 00"
+              />
+            </div>
+
             {errors.phone && (
               <p className="text-red-500 text-sm mt-1">{errors.phone}</p>
             )}
