@@ -1,9 +1,9 @@
-import React from 'react';
-import { Phone, Mail, MapPin, Send } from 'lucide-react';
-import { Language } from '../types';
-import { translations } from '../data/translations';
-import SecureContactForm from './SecureContactForm';
-import { FaTelegramPlane } from "react-icons/fa";
+import React from "react";
+import { Phone, Mail, MapPin, Send } from "lucide-react";
+import { Language } from "../types";
+import { translations } from "../data/translations";
+import SecureContactForm from "./SecureContactForm";
+import { FaInstagram, FaTelegramPlane } from "react-icons/fa";
 
 interface ContactProps {
   currentLanguage: Language;
@@ -16,26 +16,31 @@ const Contact: React.FC<ContactProps> = ({ currentLanguage }) => {
     {
       icon: <Phone className="w-6 h-6" />,
       label: t.contact.phone,
-      value: '+998 94 171 71 94',
-      href: 'tel:+998941717194'
+      value: "+998 94 171 71 94",
+      href: "tel:+998941717194",
     },
     {
       icon: <FaTelegramPlane className="w-6 h-6" />,
-      value: '@weblezen',
-      href: 'https://t.me/weblezen'
+      value: "@weblezen",
+      href: "https://t.me/weblezen",
+    },
+    {
+      icon: <FaInstagram className="w-6 h-6" />,
+      value: "@tezsayt",
+      href: "https://www.instagram.com/tezsayt",
     },
     {
       icon: <Mail className="w-6 h-6" />,
       label: t.contact.email,
-      value: 'lezenuz@gmail.com',
-      href: 'mailto:lezenuz@gmail.com'
+      value: "lezenuz@gmail.com",
+      href: "mailto:lezenuz@gmail.com",
     },
     {
       icon: <MapPin className="w-6 h-6" />,
       label: t.contact.address,
-      value: 'Tashkent, Uzbekistan',
-      href: '#'
-    }
+      value: "Tashkent, Uzbekistan",
+      href: "#",
+    },
   ];
 
   return (
