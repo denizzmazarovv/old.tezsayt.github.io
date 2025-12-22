@@ -63,7 +63,9 @@ const Footer: React.FC<FooterProps> = ({ currentLanguage }) => {
         </div>
 
         <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-          <p>&copy; 2025 Tez Sayt. {t.footer.copyright}</p>
+          <a href="https://t.me/deniz4me">
+            <p>&copy; 2026 Tez Sayt {t.footer.copyright}</p>
+          </a>
         </div>
       </div>
     </footer>
