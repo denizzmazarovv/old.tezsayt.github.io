@@ -30,14 +30,14 @@ const Footer: React.FC<FooterProps> = ({ currentLanguage }) => {
                 className="text-gray-400 hover:text-purple-400 transition-colors"
                 aria-label="Telegram"
               >
-                <FaTelegramPlane className="w-5 h-5" />
+                <FaTelegramPlane className="w-7 h-7" />
               </a>
               <a
                 href="https://www.instagram.com/tezsayt/"
                 className="text-gray-400 hover:text-purple-400 transition-colors"
                 aria-label="Instagram"
               >
-                <FaInstagram className="w-5 h-5" />
+                <FaInstagram className="w-7 h-7" />
               </a>
             </div>
           </div>
