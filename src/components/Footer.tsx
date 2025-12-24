@@ -59,7 +59,11 @@ const Footer: React.FC<FooterProps> = ({ currentLanguage }) => {
               </li>
               <li>Tashkent, Uzbekistan</li>
               <li>
-                <a href="privacy.html" target="_blank">
+                <a
+                  href=".privacy.html"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   privacy policy
                 </a>
               </li>
