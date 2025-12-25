@@ -13,7 +13,7 @@ interface ContactFormData {
 type FormErrors = Partial<Record<keyof ContactFormData | "submit", string>>;
 
 /* =========================
-   🔐 САНИТИЗАЦИЯ
+   🔐 САНИТИЗАЦИЯ (СТРОГО)
 ========================= */
 
 const sanitizeText = (value: string) =>
@@ -26,19 +26,15 @@ const sanitizePhone = (value: string) =>
   value.replace(/\D/g, "").slice(0, 9);
 
 /* =========================
-   📱 ФОРМАТ ТЕЛЕФОНА
+   📱 АВТОФОРМАТ ТЕЛЕФОНА
 ========================= */
 
 const formatPhone = (value: string) => {
   const d = value.replace(/\D/g, "");
   if (d.length <= 2) return d;
   if (d.length <= 5) return `${d.slice(0, 2)} ${d.slice(2)}`;
-  if (d.length <= 7)
-    return `${d.slice(0, 2)} ${d.slice(2, 5)} ${d.slice(5)}`;
-  return `${d.slice(0, 2)} ${d.slice(2, 5)} ${d.slice(
-    5,
-    7
-  )} ${d.slice(7, 9)}`;
+  if (d.length <= 7) return `${d.slice(0, 2)} ${d.slice(2, 5)} ${d.slice(5)}`;
+  return `${d.slice(0, 2)} ${d.slice(2, 5)} ${d.slice(5, 7)} ${d.slice(7, 9)}`;
 };
 
 /* =========================
@@ -80,7 +76,6 @@ const recordSubmission = () => {
 const getDeviceModel = () => {
   const ua = navigator.userAgent;
 
-  // 🍎 iPhone
   if (/iPhone/.test(ua)) {
     if (/iPhone15,3|iPhone15,2/.test(ua)) return "iPhone 14 Pro Max";
     if (/iPhone14,7|iPhone14,8/.test(ua)) return "iPhone 14 / 14 Plus";
@@ -88,14 +83,12 @@ const getDeviceModel = () => {
     return "iPhone";
   }
 
-  // 🍎 Mac
   if (/Macintosh/.test(ua)) {
     if (/Mac OS X 14/.test(ua)) return "MacBook Pro (M3)";
     if (/Mac OS X 13/.test(ua)) return "MacBook Pro (M2)";
     return "MacBook";
   }
 
-  // 🤖 Android
   if (/Android/.test(ua)) {
     if (/Mi|Redmi/.test(ua)) return "Xiaomi";
     if (/SM-G/.test(ua)) return "Samsung Galaxy";
@@ -103,7 +96,6 @@ const getDeviceModel = () => {
     return "Android phone";
   }
 
-  // 🖥 Windows
   if (/Windows/.test(ua)) return "Windows PC";
 
   return "Unknown device";
@@ -135,20 +127,22 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({
 
   const validateForm = (): boolean => {
     const e: FormErrors = {};
+
     if (!validateInput(formData.name, 100)) e.name = t.formInputName;
-    if (!validateInput(formData.message, 1000))
-      e.message = t.formInputMessage;
+    if (!validateInput(formData.message, 1000)) e.message = t.formInputMessage;
     if (formData.email && !validateEmail(formData.email))
       e.email = t.formInputMessage;
     if (formData.phone && !validatePhone(formData.phone))
       e.phone = t.formTelephone;
     if (isRateLimited()) e.submit = t.formSendError;
+
     setErrors(e);
     return Object.keys(e).length === 0;
   };
 
   const handleInputChange = (field: keyof ContactFormData, value: string) => {
     let cleanValue = value;
+
     if (field === "email") cleanValue = sanitizeEmail(value);
     else if (field === "phone") cleanValue = sanitizePhone(value);
     else cleanValue = sanitizeText(value);
@@ -166,23 +160,18 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({
 
     setIsSubmitting(true);
 
-    const device = getDeviceModel();
-
     const payload = new URLSearchParams({
       name: formData.name,
       email: formData.email,
       message: formData.message,
-      device, // 👈 МОДЕЛЬ УСТРОЙСТВА
+      device: getDeviceModel(), // 👈 УСТРОЙСТВО
       ...(formData.phone ? { phone: `+998${formData.phone}` } : {}),
     });
 
     try {
       const res = await fetch(
         "https://script.google.com/macros/s/AKfycbzknqi83jOfSo9UswTP3hwoAjdV3SDbf5-5yEGwmYVqAzR2V7VB2xkPDFIp-zEkRe0/exec",
-        {
-          method: "POST",
-          body: payload,
-        }
+        { method: "POST", body: payload }
       );
 
       if ((await res.text()) === "OK") {
@@ -198,6 +187,8 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({
       setIsSubmitting(false);
     }
   };
+
+  /* ===== SUCCESS ===== */
 
   if (submitted) {
     return (
@@ -219,6 +210,8 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({
     );
   }
 
+  /* ===== FORM ===== */
+
   return (
     <div className="bg-white rounded-2xl p-8 shadow-lg">
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -230,50 +223,80 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({
 
         <div className="grid gap-6">
           {/* Имя */}
-          <input
-            type="text"
-            value={formData.name}
-            onChange={(e) => handleInputChange("name", e.target.value)}
-            placeholder={t.formInputName}
-            required
-            className="w-full px-4 py-3 border rounded-lg"
-          />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              {t.formName} <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => handleInputChange("name", e.target.value)}
+              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 ${
+                errors.name ? "border-red-500" : "border-gray-300"
+              }`}
+              placeholder={t.formInputName}
+              required
+            />
+          </div>
 
           {/* Email */}
-          <input
-            type="email"
-            value={formData.email}
-            onChange={(e) => handleInputChange("email", e.target.value)}
-            placeholder="example@mail.com"
-            className="w-full px-4 py-3 border rounded-lg"
-          />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Email
+            </label>
+            <input
+              type="email"
+              value={formData.email}
+              onChange={(e) => handleInputChange("email", e.target.value)}
+              className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 border-gray-300"
+              placeholder="example@mail.com"
+            />
+          </div>
 
           {/* Телефон */}
-          <input
-            type="tel"
-            value={formatPhone(formData.phone || "")}
-            onChange={(e) => handleInputChange("phone", e.target.value)}
-            placeholder="+998 XX XXX XX XX"
-            className="w-full px-4 py-3 border rounded-lg"
-          />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              {t.formTelephone}
+            </label>
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">
+                +998
+              </span>
+              <input
+                type="tel"
+                value={formatPhone(formData.phone || "")}
+                onChange={(e) => handleInputChange("phone", e.target.value)}
+                className="w-full pl-16 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 border-gray-300"
+                placeholder="XX XXX XX XX"
+              />
+            </div>
+          </div>
 
           {/* Сообщение */}
-          <textarea
-            rows={6}
-            value={formData.message}
-            onChange={(e) => handleInputChange("message", e.target.value)}
-            placeholder={t.formInputMessage}
-            required
-            className="w-full px-4 py-3 border rounded-lg resize-none"
-          />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              {t.formMessage} <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              rows={6}
+              value={formData.message}
+              onChange={(e) => handleInputChange("message", e.target.value)}
+              className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 resize-none border-gray-300"
+              required
+              maxLength={500}
+            />
+            <div className="text-right text-sm text-gray-500 mt-1">
+              {formData.message.length}/500
+            </div>
+          </div>
         </div>
 
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full bg-gradient-to-r from-purple-600 to-blue-500 text-white py-4 rounded-lg font-semibold"
+          className="w-full bg-gradient-to-r from-purple-600 to-blue-500 text-white py-4 rounded-lg font-semibold hover:shadow-lg hover:shadow-purple-500/25 transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50"
         >
-          <Send className="inline mr-2" />
+          <Send className="w-5 h-5" />
           {isSubmitting ? t.formSending : t.formMessage}
         </button>
       </form>
