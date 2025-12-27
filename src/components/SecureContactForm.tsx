@@ -13,18 +13,18 @@ interface ContactFormData {
 type FormErrors = Partial<Record<keyof ContactFormData | "submit", string>>;
 
 /* =========================
-   🔐 САНИТИЗАЦИЯ (ТВОЯ)
+   🔐 SANITIZE
 ========================= */
 
 const sanitizeText = (value: string) =>
-  value.replace(/[<>[\]{}'"\\/|;:=]/g, "");
+  value.replace(/[<>[\]{}"'\\/|;:=]/g, "");
 
 const sanitizeEmail = (value: string) => value.replace(/[^\w@.+-]/g, "").trim();
 
 const sanitizePhone = (value: string) => value.replace(/\D/g, "").slice(0, 9);
 
 /* =========================
-   📱 АВТОФОРМАТ ТЕЛЕФОНА
+   📱 PHONE FORMAT
 ========================= */
 
 const formatPhone = (value: string) => {
@@ -36,7 +36,7 @@ const formatPhone = (value: string) => {
 };
 
 /* =========================
-   ✅ ВАЛИДАЦИЯ (ТВОЯ)
+   ✅ VALIDATION
 ========================= */
 
 const validateEmail = (email: string) =>
@@ -44,30 +44,86 @@ const validateEmail = (email: string) =>
 
 const validatePhone = (phone: string) => /^\d{9}$/.test(phone);
 
-const validateInput = (input: string, maxLength: number) =>
-  input.length > 1 && input.length <= maxLength;
+const validateInput = (value: string, max: number) =>
+  value.length > 1 && value.length <= max;
 
 /* =========================
-   📱 DEVICE DETECTION (МАКСИМУМ ВОЗМОЖНОГО)
+   📱 DEVICE DETECTION
 ========================= */
 
-const getDeviceModel = () => {
+const getDeviceModel = (): string => {
   const ua = navigator.userAgent;
+  const platform = navigator.platform;
+  const dpr = window.devicePixelRatio || 1;
 
-  // 🍎 iPhone — модель браузер НЕ даёт
-  if (/iPhone/i.test(ua)) return "iPhone (iOS)";
+  const width = screen.width * dpr;
+  const height = screen.height * dpr;
+  const resolution = `${width}x${height}`;
 
-  // 🤖 Android — модель можно вытащить
-  if (/Android/i.test(ua)) {
-    const match = ua.match(/Android.*; ([^;)]*)/i);
-    if (match && match[1]) return match[1].trim();
-    return "Android phone";
+  const isIOS = /iPhone|iPad|iPod/i.test(ua);
+  const isMac = /Mac/i.test(platform);
+  const isIPad = /iPad/i.test(ua) || (isMac && navigator.maxTouchPoints > 1);
+  const isMobile = /Mobi/i.test(ua);
+
+  if (isIOS && !isIPad && isMobile) {
+    const map: Record<string, string> = {
+      "1290x2796": "iPhone 15 / 16 Pro Max",
+      "1179x2556": "iPhone 15 / 16 Pro",
+      "1170x2532": "iPhone 14 / 13 / 15",
+      "1284x2778": "iPhone 14 Pro Max",
+      "1080x2340": "iPhone 13 mini",
+      "750x1334": "iPhone SE (2022/2024)",
+    };
+    return map[resolution] || "iPhone";
   }
 
-  if (/Macintosh/i.test(ua)) return "MacBook (macOS)";
-  if (/Windows/i.test(ua)) return "Windows PC";
+  if (isIPad) {
+    const map: Record<string, string> = {
+      "2208x3200": 'iPad Pro M4 13"',
+      "2156x3036": 'iPad Pro M4 11"',
+      "2048x2732": 'iPad Pro 12.9"',
+      "1668x2388": 'iPad Pro 11"',
+      "1640x2360": "iPad Air M2",
+      "1620x2160": "iPad 10 / 11",
+      "1488x2266": "iPad mini",
+    };
+    return map[resolution] || "iPad";
+  }
 
-  return "Unknown device";
+  if (isMac && !isMobile) {
+    const map: Record<string, string> = {
+      "3456x2234": 'MacBook Pro 16"',
+      "3024x1964": 'MacBook Pro 16"',
+      "3024x1890": 'MacBook Pro 14"',
+      "2880x1800": 'MacBook Pro 14"',
+      "2880x1864": 'MacBook Air 15"',
+      "2560x1664": 'MacBook Air 13"',
+    };
+
+    let model = map[resolution] || "Mac";
+
+    try {
+      const gl = document.createElement("canvas").getContext("webgl");
+      const dbg = gl?.getExtension("WEBGL_debug_renderer_info");
+      const r = dbg && gl?.getParameter(dbg.UNMASKED_RENDERER_WEBGL);
+      if (r?.includes("M3")) model += " M3";
+      else if (r?.includes("M2")) model += " M2";
+      else if (r?.includes("M1")) model += " M1";
+    } catch {}
+
+    return model;
+  }
+
+  if (/Android/i.test(ua)) {
+    const match = ua.match(/Android.*; ([^;)]+)/i);
+    if (match?.[1]) return match[1].replace("Build", "").trim();
+    return "Android Phone";
+  }
+
+  if (/Windows/i.test(ua)) return "Windows PC";
+  if (/Linux/i.test(ua)) return "Linux PC";
+
+  return isMobile ? "Mobile Device" : "Desktop Device";
 };
 
 /* =========================
@@ -110,7 +166,6 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({
 
   const handleInputChange = (field: keyof ContactFormData, value: string) => {
     let cleanValue = value;
-
     if (field === "email") cleanValue = sanitizeEmail(value);
     else if (field === "phone") cleanValue = sanitizePhone(value);
     else cleanValue = sanitizeText(value);
@@ -124,16 +179,11 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({
 
     setIsSubmitting(true);
 
-    // 🔥 ГАРАНТИРОВАННАЯ ОТПРАВКА device
     const payload = new URLSearchParams();
     payload.append("name", formData.name);
     payload.append("email", formData.email || "");
     payload.append("message", formData.message);
-
-    if (formData.phone) {
-      payload.append("phone", `+998${formData.phone}`);
-    }
-
+    if (formData.phone) payload.append("phone", `+998${formData.phone}`);
     payload.append("device", getDeviceModel());
 
     try {
@@ -177,7 +227,7 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({
     );
   }
 
-  /* ===== FORM (СТИЛИ 1-В-1 ТВОИ) ===== */
+  /* ===== FORM ===== */
 
   return (
     <div className="bg-white rounded-2xl p-8 shadow-lg">
