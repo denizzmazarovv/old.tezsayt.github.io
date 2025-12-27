@@ -1,5 +1,12 @@
 export const translations = {
   ru: {
+    errors: {
+      name: "Введите корректное имя",
+      email: "Введите корректный email",
+      phone: "Введите корректный номер телефона",
+      message: "Сообщение слишком короткое",
+    },
+
     form: {
       formName: "Имя ",
       formTelephone: "Телефон",
@@ -11,6 +18,12 @@ export const translations = {
       formInputName: "Ваше имя",
       formInputMessage: "Расскажите о вашем проекте...",
       formSending: "Отправка...",
+      errors: {
+        name: "Введите корректное имя",
+        email: "Введите корректный email",
+        phone: "Введите корректный номер телефона",
+        message: "Сообщение слишком короткое",
+      },
     },
     navigation: {
       home: "Главная",
@@ -141,6 +154,12 @@ export const translations = {
       formInputName: "Your name",
       formInputMessage: "Tell us about your project...",
       formSending: "Sending...",
+      errors: {
+        name: "Please enter a valid name",
+        email: "Please enter a valid email address",
+        phone: "Please enter a valid phone number",
+        message: "Message is too short",
+      },
     },
     navigation: {
       home: "Home",
@@ -270,6 +289,12 @@ export const translations = {
       formInputName: "Ismingiz",
       formInputMessage: "Loyihangiz haqida yozing...",
       formSending: "Yuborilmoqda...",
+      errors: {
+        name: "Ismni togri kiriting",
+        email: "Email notogri kiritildi",
+        phone: "Telefon raqami notogri",
+        message: "Xabar juda qisqa",
+      },
     },
     navigation: {
       home: "Bosh sahifa",

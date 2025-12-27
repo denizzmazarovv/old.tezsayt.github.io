@@ -152,15 +152,28 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({
 
   const t = translations[currentLanguage]?.form || translations.ru.form;
 
+  /* =========================
+     🔍 FORM VALIDATION (FIXED)
+  ========================= */
+
   const validateForm = (): boolean => {
     const e: FormErrors = {};
 
-    if (!validateInput(formData.name, 100)) e.name = t.formInputName;
-    if (!validateInput(formData.message, 1000)) e.message = t.formInputMessage;
-    if (formData.email && !validateEmail(formData.email))
-      e.email = t.formInputMessage;
-    if (formData.phone && !validatePhone(formData.phone))
-      e.phone = t.formTelephone;
+    if (!validateInput(formData.name, 100)) {
+      e.name = t.errors?.name;
+    }
+
+    if (!validateInput(formData.message, 1000)) {
+      e.message = t.errors?.message;
+    }
+
+    if (formData.email && !validateEmail(formData.email)) {
+      e.email = t.errors?.email;
+    }
+
+    if (formData.phone && !validatePhone(formData.phone)) {
+      e.phone = t.errors?.phone;
+    }
 
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -168,11 +181,17 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({
 
   const handleInputChange = (field: keyof ContactFormData, value: string) => {
     let cleanValue = value;
+
     if (field === "email") cleanValue = sanitizeEmail(value);
     else if (field === "phone") cleanValue = sanitizePhone(value);
     else cleanValue = sanitizeText(value);
 
     setFormData((prev) => ({ ...prev, [field]: cleanValue }));
+
+    // 🔧 очищаем ошибку конкретного поля при вводе
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: undefined }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -196,7 +215,12 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({
 
       if ((await res.text()) === "OK") {
         setSubmitted(true);
-        setFormData({ name: "", email: "", message: "", phone: "" });
+        setFormData({
+          name: "",
+          email: "",
+          message: "",
+          phone: "",
+        });
       } else {
         setErrors({ submit: t.formSendError });
       }
@@ -257,6 +281,9 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({
               maxLength={40}
               required
             />
+            {errors.name && (
+              <p className="mt-1 text-sm text-red-500">{errors.name}</p>
+            )}
           </div>
 
           {/* Email */}
@@ -268,10 +295,15 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({
               type="email"
               value={formData.email}
               onChange={(e) => handleInputChange("email", e.target.value)}
-              className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 border-gray-300"
+              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 ${
+                errors.email ? "border-red-500" : "border-gray-300"
+              }`}
               placeholder="example@mail.com"
               maxLength={70}
             />
+            {errors.email && (
+              <p className="mt-1 text-sm text-red-500">{errors.email}</p>
+            )}
           </div>
 
           {/* Телефон */}
@@ -287,10 +319,15 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({
                 type="tel"
                 value={formatPhone(formData.phone || "")}
                 onChange={(e) => handleInputChange("phone", e.target.value)}
-                className="w-full pl-16 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 border-gray-300"
+                className={`w-full pl-16 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 ${
+                  errors.phone ? "border-red-500" : "border-gray-300"
+                }`}
                 placeholder="XX XXX XX XX"
               />
             </div>
+            {errors.phone && (
+              <p className="mt-1 text-sm text-red-500">{errors.phone}</p>
+            )}
           </div>
 
           {/* Сообщение */}
@@ -302,13 +339,18 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({
               rows={6}
               value={formData.message}
               onChange={(e) => handleInputChange("message", e.target.value)}
-              className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 resize-none border-gray-300"
+              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 resize-none ${
+                errors.message ? "border-red-500" : "border-gray-300"
+              }`}
               required
               maxLength={500}
             />
             <div className="text-right text-sm text-gray-500 mt-1">
               {formData.message.length}/500
             </div>
+            {errors.message && (
+              <p className="mt-1 text-sm text-red-500">{errors.message}</p>
+            )}
           </div>
         </div>
 
