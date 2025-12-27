@@ -13,20 +13,16 @@ interface ContactFormData {
 type FormErrors = Partial<Record<keyof ContactFormData | "submit", string>>;
 
 /* =========================
-   🔐 САНИТИЗАЦИЯ (СТРОГО)
+   🔐 САНИТИЗАЦИЯ
 ========================= */
 
 const sanitizeText = (value: string) =>
   value.replace(/[<>[\]{}'"\\/|;:=]/g, "");
 
-const sanitizeEmail = (value: string) =>
-  value.replace(/[^\w@.+-]/g, "").trim();
-
-const sanitizePhone = (value: string) =>
-  value.replace(/\D/g, "").slice(0, 9);
+const sanitizeEmail = (value: string) => value.replace(/[^\w@.+-]/g, "").trim();
 
 /* =========================
-   📱 АВТОФОРМАТ ТЕЛЕФОНА
+   📱 ТЕЛЕФОН
 ========================= */
 
 const formatPhone = (value: string) => {
@@ -37,66 +33,27 @@ const formatPhone = (value: string) => {
   return `${d.slice(0, 2)} ${d.slice(2, 5)} ${d.slice(5, 7)} ${d.slice(7, 9)}`;
 };
 
-/* =========================
-   ✅ ВАЛИДАЦИЯ
-========================= */
-
 const validateEmail = (email: string) =>
   /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
-const validatePhone = (phone: string) => /^\d{9}$/.test(phone);
-
-const validateInput = (input: string, maxLength: number) =>
-  input.length > 1 && input.length <= maxLength;
-
 /* =========================
-   ⏱ RATE LIMIT
-========================= */
-
-const isRateLimited = () => {
-  const now = Date.now();
-  const windowMs = 10 * 60 * 1000;
-  const stored = localStorage.getItem("successfulSubmissions");
-  const submissions: number[] = stored ? JSON.parse(stored) : [];
-  const recent = submissions.filter((t) => now - t <= windowMs);
-  return recent.length >= 5;
-};
-
-const recordSubmission = () => {
-  const stored = localStorage.getItem("successfulSubmissions");
-  const submissions: number[] = stored ? JSON.parse(stored) : [];
-  submissions.push(Date.now());
-  localStorage.setItem("successfulSubmissions", JSON.stringify(submissions));
-};
-
-/* =========================
-   📱 DEVICE DETECTION
+   📱 DEVICE DETECTION (РЕАЛЬНАЯ)
 ========================= */
 
 const getDeviceModel = () => {
   const ua = navigator.userAgent;
 
-  if (/iPhone/.test(ua)) {
-    if (/iPhone15,3|iPhone15,2/.test(ua)) return "iPhone 14 Pro Max";
-    if (/iPhone14,7|iPhone14,8/.test(ua)) return "iPhone 14 / 14 Plus";
-    if (/iPhone16/.test(ua)) return "iPhone 15";
-    return "iPhone";
-  }
+  if (/iPhone/i.test(ua)) return "iPhone (iOS)";
 
-  if (/Macintosh/.test(ua)) {
-    if (/Mac OS X 14/.test(ua)) return "MacBook Pro (M3)";
-    if (/Mac OS X 13/.test(ua)) return "MacBook Pro (M2)";
-    return "MacBook";
-  }
-
-  if (/Android/.test(ua)) {
-    if (/Mi|Redmi/.test(ua)) return "Xiaomi";
-    if (/SM-G/.test(ua)) return "Samsung Galaxy";
-    if (/Pixel/.test(ua)) return "Google Pixel";
+  if (/Android/i.test(ua)) {
+    if (/Samsung/i.test(ua)) return "Samsung (Android)";
+    if (/Xiaomi|Mi|Redmi/i.test(ua)) return "Xiaomi (Android)";
+    if (/Pixel/i.test(ua)) return "Google Pixel (Android)";
     return "Android phone";
   }
 
-  if (/Windows/.test(ua)) return "Windows PC";
+  if (/Macintosh/i.test(ua)) return "MacBook / macOS";
+  if (/Windows/i.test(ua)) return "Windows PC";
 
   return "Unknown device";
 };
@@ -128,13 +85,12 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({
   const validateForm = (): boolean => {
     const e: FormErrors = {};
 
-    if (!validateInput(formData.name, 100)) e.name = t.formInputName;
-    if (!validateInput(formData.message, 1000)) e.message = t.formInputMessage;
+    if (formData.name.length < 2) e.name = t.formInputName;
+    if (formData.message.length < 5) e.message = t.formInputMessage;
     if (formData.email && !validateEmail(formData.email))
       e.email = t.formInputMessage;
-    if (formData.phone && !validatePhone(formData.phone))
+    if (formData.phone && formData.phone.length !== 9)
       e.phone = t.formTelephone;
-    if (isRateLimited()) e.submit = t.formSendError;
 
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -144,14 +100,11 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({
     let cleanValue = value;
 
     if (field === "email") cleanValue = sanitizeEmail(value);
-    else if (field === "phone") cleanValue = sanitizePhone(value);
+    else if (field === "phone")
+      cleanValue = value.replace(/\D/g, "").slice(0, 9);
     else cleanValue = sanitizeText(value);
 
     setFormData((prev) => ({ ...prev, [field]: cleanValue }));
-
-    if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: undefined }));
-    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -160,22 +113,29 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({
 
     setIsSubmitting(true);
 
-    const payload = new URLSearchParams({
-      name: formData.name,
-      email: formData.email,
-      message: formData.message,
-      device: getDeviceModel(), // 👈 УСТРОЙСТВО
-      ...(formData.phone ? { phone: `+998${formData.phone}` } : {}),
-    });
+    /* 🔥 ВАЖНО: ТОЛЬКО append(), чтобы device НЕ ТЕРЯЛСЯ */
+    const payload = new URLSearchParams();
+    payload.append("name", formData.name);
+    payload.append("email", formData.email || "");
+    payload.append("message", formData.message);
+
+    if (formData.phone) {
+      payload.append("phone", `+998${formData.phone}`);
+    }
+
+    const device = getDeviceModel() || "Unknown device";
+    payload.append("device", device);
 
     try {
       const res = await fetch(
-        "https://script.google.com/macros/s/AKfycbzknqi83jOfSo9UswTP3hwoAjdV3SDbf5-5yEGwmYVqAzR2V7VB2xkPDFIp-zEkRe0/exec",
-        { method: "POST", body: payload }
+        "https://script.google.com/macros/s/AKfycbyv4FO3pn4IxGHeBhqqItmdXUWWhlqvH0ijZLn7O1k06u9DTPAP-ZQIlWo8x8ZNmPSv/exec",
+        {
+          method: "POST",
+          body: payload,
+        }
       );
 
       if ((await res.text()) === "OK") {
-        recordSubmission();
         setSubmitted(true);
         setFormData({ name: "", email: "", message: "", phone: "" });
       } else {
@@ -231,70 +191,49 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({
               type="text"
               value={formData.name}
               onChange={(e) => handleInputChange("name", e.target.value)}
-              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 ${
-                errors.name ? "border-red-500" : "border-gray-300"
-              }`}
-              placeholder={t.formInputName}
+              className="w-full px-4 py-3 border rounded-lg border-gray-300"
               required
             />
           </div>
 
           {/* Email */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Email
-            </label>
-            <input
-              type="email"
-              value={formData.email}
-              onChange={(e) => handleInputChange("email", e.target.value)}
-              className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 border-gray-300"
-              placeholder="example@mail.com"
-            />
-          </div>
+          <input
+            type="email"
+            value={formData.email}
+            onChange={(e) => handleInputChange("email", e.target.value)}
+            className="w-full px-4 py-3 border rounded-lg border-gray-300"
+            placeholder="example@mail.com"
+          />
 
           {/* Телефон */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              {t.formTelephone}
-            </label>
-            <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">
-                +998
-              </span>
-              <input
-                type="tel"
-                value={formatPhone(formData.phone || "")}
-                onChange={(e) => handleInputChange("phone", e.target.value)}
-                className="w-full pl-16 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 border-gray-300"
-                placeholder="XX XXX XX XX"
-              />
-            </div>
+          <div className="relative">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">
+              +998
+            </span>
+            <input
+              type="tel"
+              value={formatPhone(formData.phone || "")}
+              onChange={(e) => handleInputChange("phone", e.target.value)}
+              className="w-full pl-16 pr-4 py-3 border rounded-lg border-gray-300"
+              placeholder="XX XXX XX XX"
+            />
           </div>
 
           {/* Сообщение */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              {t.formMessage} <span className="text-red-500">*</span>
-            </label>
-            <textarea
-              rows={6}
-              value={formData.message}
-              onChange={(e) => handleInputChange("message", e.target.value)}
-              className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 resize-none border-gray-300"
-              required
-              maxLength={500}
-            />
-            <div className="text-right text-sm text-gray-500 mt-1">
-              {formData.message.length}/500
-            </div>
-          </div>
+          <textarea
+            rows={6}
+            value={formData.message}
+            onChange={(e) => handleInputChange("message", e.target.value)}
+            className="w-full px-4 py-3 border rounded-lg border-gray-300"
+            required
+            maxLength={500}
+          />
         </div>
 
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full bg-gradient-to-r from-purple-600 to-blue-500 text-white py-4 rounded-lg font-semibold hover:shadow-lg hover:shadow-purple-500/25 transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50"
+          className="w-full bg-gradient-to-r from-purple-600 to-blue-500 text-white py-4 rounded-lg font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
         >
           <Send className="w-5 h-5" />
           {isSubmitting ? t.formSending : t.formMessage}
