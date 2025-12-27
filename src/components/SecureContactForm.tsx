@@ -254,7 +254,7 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({
                 errors.name ? "border-red-500" : "border-gray-300"
               }`}
               placeholder={t.formInputName}
-              maxLength={20}
+              maxLength={30}
               required
             />
           </div>
