@@ -23,6 +23,7 @@ export const translations = {
         email: "Введите корректный email",
         phone: "Введите корректный номер телефона",
         message: "Сообщение слишком короткое",
+        contact: "Укажите телефон или email",
       },
     },
     navigation: {
@@ -159,6 +160,7 @@ export const translations = {
         email: "Please enter a valid email address",
         phone: "Please enter a valid phone number",
         message: "Message is too short",
+        contact: "Please enter phone number or email",
       },
     },
     navigation: {
@@ -294,6 +296,7 @@ export const translations = {
         email: "Email notogri kiritildi",
         phone: "Telefon raqami notogri",
         message: "Xabar juda qisqa",
+        contact: "Telefon raqami yoki email kiriting",
       },
     },
     navigation: {

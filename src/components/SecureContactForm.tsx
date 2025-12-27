@@ -168,10 +168,13 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({
     }
 
     // ❗ ОБЯЗАТЕЛЬНО: телефон ИЛИ email
-    const contactError = (t.errors as any)?.contact;
+    // ❗ телефон ИЛИ email
+    if (!formData.email && !formData.phone) {
+      const contactError = t.errors?.contact || t.formTelephone + " / Email";
 
-    e.email = contactError;
-    e.phone = contactError;
+      e.email = contactError;
+      e.phone = contactError;
+    }
 
     if (formData.email && !validateEmail(formData.email)) {
       e.email = t.errors?.email;
