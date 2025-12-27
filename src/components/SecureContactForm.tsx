@@ -153,7 +153,7 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({
   const t = translations[currentLanguage]?.form || translations.ru.form;
 
   /* =========================
-     🔍 FORM VALIDATION (FIXED)
+     🔍 FORM VALIDATION
   ========================= */
 
   const validateForm = (): boolean => {
@@ -166,6 +166,12 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({
     if (!validateInput(formData.message, 1000)) {
       e.message = t.errors?.message;
     }
+
+    // ❗ ОБЯЗАТЕЛЬНО: телефон ИЛИ email
+    const contactError = (t.errors as any)?.contact;
+
+    e.email = contactError;
+    e.phone = contactError;
 
     if (formData.email && !validateEmail(formData.email)) {
       e.email = t.errors?.email;
@@ -187,11 +193,6 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({
     else cleanValue = sanitizeText(value);
 
     setFormData((prev) => ({ ...prev, [field]: cleanValue }));
-
-    // 🔧 очищаем ошибку конкретного поля при вводе
-    if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: undefined }));
-    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
