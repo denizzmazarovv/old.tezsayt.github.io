@@ -254,7 +254,7 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({
                 errors.name ? "border-red-500" : "border-gray-300"
               }`}
               placeholder={t.formInputName}
-              maxLength={30}
+              maxLength={40}
               required
             />
           </div>
@@ -270,7 +270,7 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({
               onChange={(e) => handleInputChange("email", e.target.value)}
               className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 border-gray-300"
               placeholder="example@mail.com"
-              maxLength={50}
+              maxLength={70}
             />
           </div>
 
