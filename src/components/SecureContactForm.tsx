@@ -67,10 +67,12 @@ const getDeviceModel = (): string => {
 
   if (isIOS && !isIPad && isMobile) {
     const map: Record<string, string> = {
-      "1290x2796": "iPhone 15 / 16 Pro Max",
-      "1179x2556": "iPhone 15 / 16 Pro",
-      "1170x2532": "iPhone 14 / 13 / 15",
-      "1284x2778": "iPhone 14 Pro Max",
+      "1290x2796": "iPhone 15-16-17 Pro Max",
+      "1179x2556": "iPhone 15-16 Pro",
+      "1170x2532": "iPhone 13-14-15",
+      "1284x2778": "iPhone 11-12-13-14 Pro Max",
+      "1792x828": "iPhone (XR-11)",
+      "1334x750": "iPhone (6-7-8)",
       "1080x2340": "iPhone 13 mini",
       "750x1334": "iPhone SE (2022/2024)",
     };
