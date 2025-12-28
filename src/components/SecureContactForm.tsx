@@ -10,10 +10,13 @@ interface ContactFormData {
   phone?: string;
 }
 
-type FormErrors = Partial<Record<keyof ContactFormData | "submit", string>>;
+// ✅ Включено согласие с политикой
+type FormErrors = Partial<
+  Record<keyof ContactFormData | "submit" | "agree", string>
+>;
 
 /* =========================
-   🔐 SANITIZE
+   🔐 SANТИЗАЦИЯ
 ========================= */
 
 const sanitizeText = (value: string) =>
@@ -24,7 +27,7 @@ const sanitizeEmail = (value: string) => value.replace(/[^\w@.+-]/g, "").trim();
 const sanitizePhone = (value: string) => value.replace(/\D/g, "").slice(0, 9);
 
 /* =========================
-   📱 PHONE FORMAT
+   📱 ФОРМАТ ТЕЛЕФОНА
 ========================= */
 
 const formatPhone = (value: string) => {
@@ -36,7 +39,7 @@ const formatPhone = (value: string) => {
 };
 
 /* =========================
-   ✅ VALIDATION
+   ✅ ВАЛИДАЦИЯ
 ========================= */
 
 const validateEmail = (email: string) =>
@@ -48,7 +51,7 @@ const validateInput = (value: string, max: number) =>
   value.length > 1 && value.length <= max;
 
 /* =========================
-   📱 DEVICE DETECTION
+   📱 ОПРЕДЕЛЕНИЕ УСТРОЙСТВА
 ========================= */
 
 const getDeviceModel = (): string => {
@@ -129,7 +132,7 @@ const getDeviceModel = (): string => {
 };
 
 /* =========================
-   🧩 COMPONENT
+   🧩 КОМПОНЕНТ
 ========================= */
 
 interface SecureContactFormProps {
@@ -146,6 +149,9 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({
     phone: "",
   });
 
+  // ✅ Добавлено состояние для согласия с политикой
+  const [agree, setAgree] = useState(false);
+
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -153,7 +159,7 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({
   const t = translations[currentLanguage]?.form || translations.ru.form;
 
   /* =========================
-     🔍 FORM VALIDATION
+     🔍 ВАЛИДАЦИЯ ФОРМЫ
   ========================= */
 
   const validateForm = (): boolean => {
@@ -167,11 +173,9 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({
       e.message = t.errors?.message;
     }
 
-    // ❗ ОБЯЗАТЕЛЬНО: телефон ИЛИ email
-    // ❗ телефон ИЛИ email
+    // ❗ Требуется телефон ИЛИ email
     if (!formData.email && !formData.phone) {
       const contactError = t.errors?.contact || t.formTelephone + " / Email";
-
       e.email = contactError;
       e.phone = contactError;
     }
@@ -182,6 +186,11 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({
 
     if (formData.phone && !validatePhone(formData.phone)) {
       e.phone = t.errors?.phone;
+    }
+
+    // ✅ Добавлена проверка согласия с политикой
+    if (!agree) {
+      e.agree = t.formPolicyError;
     }
 
     setErrors(e);
@@ -225,6 +234,7 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({
           message: "",
           phone: "",
         });
+        setAgree(false);
       } else {
         setErrors({ submit: t.formSendError });
       }
@@ -235,7 +245,7 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({
     }
   };
 
-  /* ===== SUCCESS ===== */
+  /* ===== УСПЕШНАЯ ОТПРАВКА ===== */
 
   if (submitted) {
     return (
@@ -257,7 +267,7 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({
     );
   }
 
-  /* ===== FORM ===== */
+  /* ===== ФОРМА ===== */
 
   return (
     <div className="bg-white rounded-2xl p-8 shadow-lg">
@@ -356,11 +366,42 @@ const SecureContactForm: React.FC<SecureContactFormProps> = ({
               <p className="mt-1 text-sm text-red-500">{errors.message}</p>
             )}
           </div>
+
+          {/* ✅ Согласие с политикой конфиденциальности */}
+          <div>
+            <div className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                id="policy"
+                checked={agree}
+                onChange={(e) => setAgree(e.target.checked)}
+                className="mt-1 h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+              />
+              <label
+                htmlFor="policy"
+                className="text-sm text-gray-600 leading-snug cursor-pointer"
+              >
+                {t.formPolicyText}{" "}
+                <a
+                  href="/privacy.html"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-purple-600 hover:underline font-medium"
+                >
+                  {t.formPolicyLink}
+                </a>
+              </label>
+            </div>
+
+            {errors.agree && (
+              <p className="mt-1 text-sm text-red-500">{errors.agree}</p>
+            )}
+          </div>
         </div>
 
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isSubmitting || !agree}
           className="w-full bg-gradient-to-r from-purple-600 to-blue-500 text-white py-4 rounded-lg font-semibold hover:shadow-lg hover:shadow-purple-500/25 transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50"
         >
           <Send className="w-5 h-5" />

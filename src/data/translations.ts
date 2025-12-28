@@ -25,6 +25,9 @@ export const translations = {
         message: "Сообщение слишком короткое",
         contact: "Укажите телефон или email",
       },
+      formPolicyText: "Я принимаю",
+      formPolicyLink: "политику конфиденциальности",
+      formPolicyError: "Необходимо принять политику конфиденциальности",
     },
     navigation: {
       home: "Главная",
@@ -162,6 +165,9 @@ export const translations = {
         message: "Message is too short",
         contact: "Please enter phone number or email",
       },
+      formPolicyText: "I agree with the",
+      formPolicyLink: "privacy policy",
+      formPolicyError: "You must accept the privacy policy",
     },
     navigation: {
       home: "Home",
@@ -298,6 +304,9 @@ export const translations = {
         message: "Xabar juda qisqa",
         contact: "Telefon raqami yoki email kiriting",
       },
+      formPolicyText: "Men",
+      formPolicyLink: "maxfiylik siyosatiga roziman",
+      formPolicyError: "Maxfiylik siyosatini qabul qilishingiz kerak",
     },
     navigation: {
       home: "Bosh sahifa",
