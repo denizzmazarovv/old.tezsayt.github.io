@@ -65,9 +65,9 @@ export const translations = {
           "Разрабатываем многостраничные сайты для представления вашего бизнеса в интернете",
       },
       ecommerce: {
-        title: "Интернет-магазины",
+        title: "Платформа меню и онлайн-заказов для ресторанов",
         description:
-          "Создаем полнофункциональные интернет-магазины с системой оплаты и управления заказами",
+          "Создаём платформы для ресторанов с онлайн-меню, приёмом заказов и интеграцией платёжных систем.",
       },
     },
     portfolio: {
@@ -205,9 +205,9 @@ export const translations = {
           "We develop multi-page websites to represent your business on the internet",
       },
       ecommerce: {
-        title: "Online Stores",
+        title: "Restaurant Menu-Ordering Platform",
         description:
-          "We create full-featured online stores with payment systems and order management",
+          "We build restaurant menu-ordering platforms with online menus, order management, and payment integration.",
       },
     },
     portfolio: {
@@ -345,9 +345,9 @@ export const translations = {
           "Biznesingizni internetda taqdim etish uchun ko'p sahifali veb-saytlar ishlab chiqamiz",
       },
       ecommerce: {
-        title: "Onlayn do'konlar",
+        title: "Restoranlar uchun menyu va onlayn buyurtma platformasi",
         description:
-          "To'lov tizimi va buyurtmalarni boshqarish bilan to'liq funksional onlayn do'konlar yaratamiz",
+          "Restoranlar uchun onlayn menyu, buyurtmalar va to‘lov tizimi bilan integratsiyalangan platformalarni yaratamiz.",
       },
     },
     portfolio: {
