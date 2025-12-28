@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Menu, X, Code } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import LanguageSelector from "./LanguageSelector";
 import { Language } from "../types";
 import { translations } from "../data/translations";
@@ -9,18 +9,32 @@ interface HeaderProps {
   onLanguageChange: (lang: Language) => void;
 }
 
+const SCROLL_THRESHOLD = 10;
+
 const Header: React.FC<HeaderProps> = ({
   currentLanguage,
   onLanguageChange,
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
+
+  // ✅ ВАЖНО: инициализация сразу из scrollY
+  const [isScrolled, setIsScrolled] = useState(() => {
+    if (typeof window !== "undefined") {
+      return window.scrollY > SCROLL_THRESHOLD;
+    }
+    return false;
+  });
+
   const t = translations[currentLanguage];
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10);
+      setIsScrolled(window.scrollY > SCROLL_THRESHOLD);
     };
+
+    // ✅ сразу проверяем при маунте (и после смены языка)
+    handleScroll();
+
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
@@ -53,14 +67,14 @@ const Header: React.FC<HeaderProps> = ({
           {/* Logo */}
           <div className="flex items-center gap-2">
             <div className="w-12">
-              <img src="/images/logo_png_gradient.png" alt="" />
+              <img src="/images/logo_png_gradient.png" alt="Tez Sayt logo" />
             </div>
             <span
               className={`text-xl font-bold transition-colors ${
                 isScrolled ? "text-gray-900" : "text-white"
               }`}
             >
-               Tez Sayt
+              Tez Sayt
             </span>
           </div>
 
@@ -82,11 +96,7 @@ const Header: React.FC<HeaderProps> = ({
           </nav>
 
           {/* Language Selector */}
-          <div
-            className={`hidden md:block ${
-              isScrolled ? "bg-transparent" : "bg-transparent"
-            }`}
-          >
+          <div className="hidden md:block">
             <LanguageSelector
               currentLanguage={currentLanguage}
               onLanguageChange={onLanguageChange}
@@ -120,11 +130,12 @@ const Header: React.FC<HeaderProps> = ({
                   {item.label}
                 </button>
               ))}
-              <div className="pl-80 py-1  border-t border-gray-200 mt-2">
+
+              <div className="px-4 pt-4 border-t border-gray-200 mt-2">
                 <LanguageSelector
                   currentLanguage={currentLanguage}
                   onLanguageChange={onLanguageChange}
-                  isScrolled={isScrolled}
+                  isScrolled={true}
                 />
               </div>
             </nav>
