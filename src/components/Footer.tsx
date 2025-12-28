@@ -64,7 +64,7 @@ const Footer: React.FC<FooterProps> = ({ currentLanguage }) => {
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  privacy policy
+                  Privacy policy
                 </a>
               </li>
             </ul>
