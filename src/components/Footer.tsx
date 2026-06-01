@@ -47,7 +47,7 @@ const Footer: React.FC<FooterProps> = ({ currentLanguage }) => {
             <h3 className="text-lg font-semibold mb-4">{t.footer.contact}</h3>
             <ul className="space-y-2 text-gray-400">
               <li>
-                <a href="tel:+998941717194">+998 90 939 12 16</a>
+                <a href="tel:+998909391216">+998 90 939 12 16</a>
               </li>
               <li>
                 <a
