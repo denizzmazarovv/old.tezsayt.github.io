@@ -16,13 +16,13 @@ const Contact: React.FC<ContactProps> = ({ currentLanguage }) => {
     {
       icon: <Phone className="w-6 h-6" />,
       label: t.contact.phone,
-      value: "+998 94 171 71 94",
-      href: "tel:+998941717194",
+      value: "+998 90 939 12 16",
+      href: "tel:+998909391216",
     },
     {
       icon: <FaTelegramPlane className="w-6 h-6" />,
-      value: "@weblezen",
-      href: "https://t.me/weblezen",
+      value: "@theleaduz",
+      href: "https://t.me/theleaduz",
     },
     {
       icon: <FaInstagram className="w-6 h-6" />,
